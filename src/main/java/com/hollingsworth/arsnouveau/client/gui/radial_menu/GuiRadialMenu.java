@@ -187,10 +187,7 @@ public class GuiRadialMenu<T> extends Screen {
                     drawSecondaryIcons(graphics, (int) posX, (int) posY, secondarySlotIcons);
                 }
             }
-            ms.pushPose();
-            ms.translate(0, 0, 9999);
             drawSliceName(graphics, String.valueOf(i + 1), stack, (int) posX, (int) posY);
-            ms.popPose();
         }
 
         if (mousedOverSlot != -1) {

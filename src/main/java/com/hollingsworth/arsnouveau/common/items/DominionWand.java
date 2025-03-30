@@ -211,7 +211,12 @@ public class DominionWand extends ModItem implements IRadialProvider {
         return new RadialMenu<>((int slot) ->
                 Networking.sendToServer(new PacketUpdateDominionWand(slot)),
                 getRadialMenuSlotsForDominion(stack),
-                RenderUtils::drawString,
+                (string, guiGraphics, positionX, positionY, size, renderTransparent) -> {
+                    guiGraphics.pose().pushPose();
+                    guiGraphics.pose().translate(0, 0, 9999);
+                    RenderUtils.drawString(string, guiGraphics, positionX, positionY, size, renderTransparent);
+                    guiGraphics.pose().popPose();
+                },
                 0);
     }
 
