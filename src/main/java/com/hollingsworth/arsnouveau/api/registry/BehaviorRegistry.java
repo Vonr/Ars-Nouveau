@@ -26,6 +26,7 @@ public class BehaviorRegistry {
 
     static {
         register(StarbyTransportBehavior.TRANSPORT_ID, (entity, tag) -> new StarbyTransportBehavior((Starbuncle) entity, tag));
+        register(StarbyTransportBehavior.TRANSPORT_ID, (entity, tag) -> new StarbyTransportBehavior((Starbuncle) entity, tag));
         register(StarbyPotionBehavior.POTION_ID, (entity, tag) -> new StarbyPotionBehavior((Starbuncle) entity, tag));
     }
 

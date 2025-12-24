@@ -1,6 +1,7 @@
 package com.hollingsworth.arsnouveau.common.entity.statemachine.starbuncle;
 
 import com.hollingsworth.arsnouveau.common.entity.Starbuncle;
+import com.hollingsworth.arsnouveau.common.entity.goal.carbuncle.StarbyListBehavior;
 import com.hollingsworth.arsnouveau.common.entity.goal.carbuncle.StarbyTransportBehavior;
 import com.hollingsworth.arsnouveau.setup.registry.BlockRegistry;
 import net.minecraft.core.BlockPos;
@@ -35,7 +36,7 @@ public class DecideStarbyActionState extends StarbyState {
         }
 
         if (behavior.takeItemBackoff <= 0) {
-            BlockPos takePos = starbuncle.getHeldStack().isEmpty() ? behavior.getValidTakePos() : null;
+            StarbyListBehavior.DirectionalBlockPos takePos = starbuncle.getHeldStack().isEmpty() ? behavior.getValidDirectionalBlockPos() : null;
             if (takePos != null) {
                 return new TakeItemState(starbuncle, behavior, takePos);
             }

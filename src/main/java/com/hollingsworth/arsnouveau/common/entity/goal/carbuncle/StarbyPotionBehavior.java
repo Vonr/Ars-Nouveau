@@ -59,9 +59,9 @@ public class StarbyPotionBehavior extends StarbyListBehavior {
     }
 
     public @Nullable BlockPos getJarForTake() {
-        for (BlockPos pos : FROM_LIST) {
-            if (isPositionValidTake(pos)) {
-                return pos;
+        for (var pos : from) {
+            if (isPositionValidTake(pos.pos())) {
+                return pos.pos();
             }
         }
         return null;
@@ -78,9 +78,9 @@ public class StarbyPotionBehavior extends StarbyListBehavior {
     }
 
     public @Nullable BlockPos getJarForStorage(PotionContents data) {
-        for (BlockPos pos : TO_LIST) {
-            if (level.getBlockEntity(pos) instanceof PotionJarTile && isPositionValidStore(pos, data)) {
-                return pos;
+        for (var pos : to) {
+            if (level.getBlockEntity(pos.pos()) instanceof PotionJarTile && isPositionValidStore(pos.pos(), data)) {
+                return pos.pos();
             }
         }
         return null;
@@ -113,7 +113,7 @@ public class StarbyPotionBehavior extends StarbyListBehavior {
     public void getTooltip(Consumer<Component> tooltip) {
         super.getTooltip(tooltip);
         tooltip.accept(Component.translatable("ars_nouveau.starbuncle.storing_potions", TO_LIST.size()));
-        tooltip.accept(Component.translatable("ars_nouveau.starbuncle.taking_potions", FROM_LIST.size()));
+        tooltip.accept(Component.translatable("ars_nouveau.starbuncle.taking_potions", from.size()));
     }
 
     @Override

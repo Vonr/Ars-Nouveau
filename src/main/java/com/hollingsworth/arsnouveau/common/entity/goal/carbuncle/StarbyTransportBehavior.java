@@ -98,7 +98,7 @@ public class StarbyTransportBehavior extends StarbyListBehavior {
     @Override
     public void pickUpItem(ItemEntity itemEntity) {
         super.pickUpItem(itemEntity);
-        if (getValidStorePos(itemEntity.getItem()) == null || isPickupDisabled())
+        if (getValidDirectionalStorePos(itemEntity.getItem()) == null || isPickupDisabled())
             return;
         Starbuncle starbuncleWithRoom = starbuncle.getStarbuncleWithSpace();
         starbuncleWithRoom.setHeldStack(itemEntity.getItem());
@@ -116,18 +116,22 @@ public class StarbyTransportBehavior extends StarbyListBehavior {
         }
     }
 
+    /**
+     * @deprecated Use {@link StarbyTransportBehavior#getValidDirectionalBlockPos()}
+     */
+    @Deprecated
     public BlockPos getValidStorePos(ItemStack stack) {
-        if (TO_LIST.isEmpty() || stack.isEmpty())
+        if (to.isEmpty() || stack.isEmpty())
             return null;
         BlockPos returnPos = null;
         ItemScroll.SortPref foundPref = ItemScroll.SortPref.INVALID;
 
-        for (BlockPos b : TO_LIST) {
+        for (var b : to) {
             ItemScroll.SortPref pref = sortPrefForStack(b, stack);
             // Pick our highest priority
             if (pref.ordinal() > foundPref.ordinal()) {
                 foundPref = pref;
-                returnPos = b;
+                returnPos = b.pos();
                 if (foundPref == ItemScroll.SortPref.HIGHEST) {
                     return returnPos;
                 }
@@ -136,8 +140,39 @@ public class StarbyTransportBehavior extends StarbyListBehavior {
         return returnPos;
     }
 
+    @Nullable
+    public DirectionalBlockPos getValidDirectionalStorePos(ItemStack stack) {
+        if (to.isEmpty() || stack.isEmpty())
+            return null;
+        DirectionalBlockPos returnPos = null;
+        ItemScroll.SortPref foundPref = ItemScroll.SortPref.INVALID;
+
+        for (var dp : to) {
+            ItemScroll.SortPref pref = sortPrefForStack(dp, stack);
+            // Pick our highest priority
+            if (pref.ordinal() > foundPref.ordinal()) {
+                foundPref = pref;
+                returnPos = dp;
+                if (foundPref == ItemScroll.SortPref.HIGHEST) {
+                    return dp;
+                }
+            }
+        }
+        return returnPos;
+    }
+
+    /**
+     * @deprecated Use {@link StarbyTransportBehavior#sortPrefForStack(DirectionalBlockPos, ItemStack)}
+     */
+    @Deprecated
     public ItemScroll.SortPref sortPrefForStack(@Nullable BlockPos b, ItemStack stack) {
         if (stack == null || stack.isEmpty() || b == null || !level.isLoaded(b))
+            return ItemScroll.SortPref.INVALID;
+        return canDepositItem(b, stack);
+    }
+
+    public ItemScroll.SortPref sortPrefForStack(@Nullable DirectionalBlockPos b, ItemStack stack) {
+        if (stack == null || stack.isEmpty() || b == null || !level.isLoaded(b.pos()))
             return ItemScroll.SortPref.INVALID;
         return canDepositItem(b, stack);
     }
@@ -150,27 +185,53 @@ public class StarbyTransportBehavior extends StarbyListBehavior {
         return starbuncle.level.getCapability(Capabilities.ItemHandler.BLOCK, pos, face);
     }
 
+    /**
+     * @deprecated Use {@link StarbyTransportBehavior#getValidDirectionalBlockPos()}
+     */
+    @Deprecated
     public @Nullable BlockPos getValidTakePos() {
-        if (FROM_LIST.isEmpty())
+        if (from.isEmpty())
             return null;
 
-        for (BlockPos p : FROM_LIST) {
-            if (isPositionValidTake(p))
-                return p;
+        for (var p : from) {
+            if (isPositionValidTake(p.pos(), p.direction())) {
+                return p.pos();
+            }
         }
         return null;
     }
 
-    public boolean isPositionValidTake(BlockPos p) {
+    public @Nullable StarbyListBehavior.DirectionalBlockPos getValidDirectionalBlockPos() {
+        if (from.isEmpty())
+            return null;
 
+        for (var p : from) {
+            if (isPositionValidTake(p.pos(), p.direction())) {
+                return p;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @deprecated Use {@link StarbyTransportBehavior#isPositionValidTake(BlockPos, Direction)}
+     */
+    @Deprecated
+    public boolean isPositionValidTake(BlockPos p) {
         if (p == null || !level.isLoaded(p)) return false;
         Direction face = FROM_DIRECTION_MAP.get(p.hashCode());
-        IItemHandler iItemHandler = getItemCapFromTile(p, face);
+        return this.isPositionValidTake(p, face);
+    }
+
+    public boolean isPositionValidTake(BlockPos p, @Nullable Direction direction) {
+        if (p == null || !level.isLoaded(p)) return false;
+        IItemHandler iItemHandler = getItemCapFromTile(p, direction);
 
         if (iItemHandler == null) return false;
         for (int j = 0; j < iItemHandler.getSlots(); j++) {
             ItemStack stack = iItemHandler.extractItem(j, 1, true);
-            if (!stack.isEmpty() && getValidStorePos(stack) != null) {
+            if (!stack.isEmpty() && getValidDirectionalStorePos(stack) != null) {
                 return true;
             }
         }
@@ -181,12 +242,11 @@ public class StarbyTransportBehavior extends StarbyListBehavior {
      * Returns the maximum stack size an inventory can accept for a particular stack. Does all needed validity checks.
      */
     public int getMaxTake(ItemStack stack) {
-        if (getValidStorePos(stack) == null) {
+        var validStorePos = getValidDirectionalStorePos(stack);
+        if (validStorePos == null) {
             return -1;
         }
-        BlockPos validStorePos = getValidStorePos(stack);
-        if (validStorePos == null) return -1;
-        IItemHandler handler = getItemCapFromTile(validStorePos, FROM_DIRECTION_MAP.get(validStorePos.hashCode()));
+        IItemHandler handler = getItemCapFromTile(validStorePos.pos(), validStorePos.direction());
         if (handler == null)
             return -1;
 
@@ -206,6 +266,10 @@ public class StarbyTransportBehavior extends StarbyListBehavior {
         return -1;
     }
 
+    /**
+     * @deprecated Use {@link StarbyTransportBehavior#canDepositItem(DirectionalBlockPos, ItemStack)}
+     */
+    @Deprecated
     private ItemScroll.SortPref canDepositItem(BlockPos pos, ItemStack stack) {
         ItemScroll.SortPref pref = ItemScroll.SortPref.LOW;
         if (pos == null || stack == null || stack.isEmpty())
@@ -239,9 +303,42 @@ public class StarbyTransportBehavior extends StarbyListBehavior {
         return !ItemStack.matches(ItemHandlerHelper.insertItemStacked(handler, stack.copy(), true), stack) ? pref : ItemScroll.SortPref.INVALID;
     }
 
+    private ItemScroll.SortPref canDepositItem(DirectionalBlockPos dp, ItemStack stack) {
+        ItemScroll.SortPref pref = ItemScroll.SortPref.LOW;
+        if (dp.pos() == null || stack == null || stack.isEmpty())
+            return ItemScroll.SortPref.INVALID;
+
+        IItemHandler handler = getItemCapFromTile(dp.pos(), dp.direction());
+        if (handler == null)
+            return ItemScroll.SortPref.INVALID;
+        for (ItemFrame i : level.getEntitiesOfClass(ItemFrame.class, new AABB(dp.pos()).inflate(1))) {
+            // Check if these frames are attached to the tile
+            BlockEntity adjTile = level.getBlockEntity(i.blockPosition().relative(i.getDirection().getOpposite()));
+            if (adjTile == null || !adjTile.equals(level.getBlockEntity(dp.pos())) || i.getItem().isEmpty())
+                continue;
+
+
+            ItemStack stackInFrame = i.getItem();
+
+            if (stackInFrame.getItem() instanceof ItemScroll scrollItem) {
+                pref = scrollItem.getSortPref(stack, stackInFrame, handler);
+                // If our item frame just contains a normal item
+            } else if (i.getItem().getItem() != stack.getItem()) {
+                return ItemScroll.SortPref.INVALID;
+            } else if (i.getItem().getItem() == stack.getItem()) {
+                pref = ItemScroll.SortPref.HIGHEST;
+            }
+        }
+        if (itemScroll != null && itemScroll.getItem() instanceof ItemScroll scrollItem && scrollItem.getSortPref(stack, itemScroll,
+                handler) == ItemScroll.SortPref.INVALID) {
+            return ItemScroll.SortPref.INVALID;
+        }
+        return !ItemStack.matches(ItemHandlerHelper.insertItemStacked(handler, stack.copy(), true), stack) ? pref : ItemScroll.SortPref.INVALID;
+    }
+
     @Override
     public boolean canGoToBed() {
-        return isBedPowered() || (getValidTakePos() == null && (starbuncle.getHeldStack().isEmpty() || getValidStorePos(starbuncle.getHeldStack()) == null));
+        return isBedPowered() || (getValidDirectionalBlockPos() == null && (starbuncle.getHeldStack().isEmpty() || getValidDirectionalStorePos(starbuncle.getHeldStack()) == null));
     }
 
     @Override
@@ -287,8 +384,8 @@ public class StarbyTransportBehavior extends StarbyListBehavior {
     @Override
     public void getTooltip(Consumer<Component> tooltip) {
         super.getTooltip(tooltip);
-        tooltip.accept(Component.translatable("ars_nouveau.starbuncle.storing", TO_LIST.size()));
-        tooltip.accept(Component.translatable("ars_nouveau.starbuncle.taking", FROM_LIST.size()));
+        tooltip.accept(Component.translatable("ars_nouveau.starbuncle.storing", to.size()));
+        tooltip.accept(Component.translatable("ars_nouveau.starbuncle.taking", from.size()));
         if (!itemScroll.isEmpty()) {
             tooltip.accept(Component.translatable("ars_nouveau.filtering_with", itemScroll.getHoverName().getString()));
         }

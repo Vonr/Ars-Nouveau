@@ -3,9 +3,11 @@ package com.hollingsworth.arsnouveau.common.entity.statemachine.starbuncle;
 import com.hollingsworth.arsnouveau.api.event.EventQueue;
 import com.hollingsworth.arsnouveau.common.entity.Starbuncle;
 import com.hollingsworth.arsnouveau.common.entity.debug.DebugEvent;
+import com.hollingsworth.arsnouveau.common.entity.goal.carbuncle.StarbyListBehavior;
 import com.hollingsworth.arsnouveau.common.entity.goal.carbuncle.StarbyTransportBehavior;
 import com.hollingsworth.arsnouveau.common.event.OpenChestEvent;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.entity.Entity;
@@ -14,13 +16,22 @@ import net.neoforged.neoforge.items.IItemHandler;
 
 
 public class TakeItemState extends TravelToPosState {
+    Direction direction;
+
+    @Deprecated
     public TakeItemState(Starbuncle starbuncle, StarbyTransportBehavior behavior, BlockPos target) {
         super(starbuncle, behavior, target, new DecideStarbyActionState(starbuncle, behavior));
+        this.direction = behavior.FROM_DIRECTION_MAP.get(targetPos.hashCode());
+    }
+
+    public TakeItemState(Starbuncle starbuncle, StarbyTransportBehavior behavior, StarbyListBehavior.DirectionalBlockPos target) {
+        super(starbuncle, behavior, target.pos(), new DecideStarbyActionState(starbuncle, behavior));
+        this.direction = target.direction();
     }
 
     @Override
     public StarbyState onDestinationReached() {
-        IItemHandler iItemHandler = behavior.getItemCapFromTile(targetPos, behavior.FROM_DIRECTION_MAP.get(targetPos.hashCode()));
+        IItemHandler iItemHandler = behavior.getItemCapFromTile(targetPos, direction);
         if (iItemHandler == null) {
             starbuncle.addGoalDebug(this, new DebugEvent("NoItemHandler", "No item handler at " + targetPos.toString()));
             return nextState;
